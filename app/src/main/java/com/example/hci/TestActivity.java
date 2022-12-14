@@ -12,33 +12,27 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
+import android.widget.ImageView;
 
-public class MainActivity extends AppCompatActivity {
-    TextView textX, textY, textZ, poruka, poruka2;
+public class TestActivity extends AppCompatActivity {
+    Button back;
     SensorManager sensorManager;
     Sensor sensor;
-    Button start;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_test);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        textX = findViewById(R.id.textx);
-        textY = findViewById(R.id.texty);
-        textZ = findViewById(R.id.textz);
-        poruka = findViewById(R.id.poruka);
-        poruka2 = findViewById(R.id.poruka2);
-        start = findViewById(R.id.buttonStart);
+        back = findViewById(R.id.buttonBack);
 
-        start.setOnClickListener(new View.OnClickListener() {
+        back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, TestActivity.class);
+                Intent intent = new Intent(TestActivity.this, MainActivity.class);
                 startActivity(intent);
             }
         });
@@ -63,28 +57,16 @@ public class MainActivity extends AppCompatActivity {
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
-
-            textX.setText("X : " + (int) x + " m/s");
-            textY.setText("Y : " + (int) y + " m/s");
-            textZ.setText("Z : " + (int) z + " m/s");
-
-            if(x < -3){
-                poruka.setText("Uredaj je nagnut u desnu stranu");
-            } else if (x > 3){
-                poruka.setText("Uredaj je nagnut u lijevu stranu");
+/*
+            ImageView ball = findViewById(R.id.ball);
+            if(x < 0){
+                ball.setY(500 - (y * 100));
+                ball.setX(500 - (x * 100));
             } else{
-                poruka.setText("Uredaj je centriran");
+                ball.setY(500 + (y * 100));
+                ball.setX(500 + (y * 100));
             }
-
-            if(y < -3){
-                poruka2.setText("Uredaj je nagnut prema naprijed");
-
-            } else if (y > 3){
-                poruka2.setText("Uredaj je nagnut prema nazad");
-
-            } else{
-                poruka2.setText("Uredaj je centriran");
-            }
+*/
         }
 
         @Override
