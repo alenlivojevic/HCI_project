@@ -25,11 +25,10 @@ public class Database {
     }
     
     public void writeNewLog(LogEntry log) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
             writer.write(log.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }
