@@ -1,4 +1,4 @@
-package com.example.hci;
+package com.example.hci.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -12,7 +12,10 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
+
+import com.example.hci.R;
+import com.example.hci.utils.Database;
+import com.example.hci.utils.LogEntry;
 
 public class TestActivity extends AppCompatActivity {
     Button back;

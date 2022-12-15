@@ -1,4 +1,4 @@
-package com.example.hci;
+package com.example.hci.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,6 +13,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.example.hci.R;
 
 public class MainActivity extends AppCompatActivity {
     TextView textX, textY, textZ, poruka, poruka2;
