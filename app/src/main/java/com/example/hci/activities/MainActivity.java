@@ -1,4 +1,4 @@
-package com.example.hci;
+package com.example.hci.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
@@ -17,7 +17,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
+
+import com.example.hci.R;
 
 public class MainActivity extends AppCompatActivity {
     TextView textX, textY, textZ, poruka, poruka2;
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item){
         switch (item.getItemId()){
             case R.id.settings:
-                Intent intent = new Intent(MainActivity.this, Settings.class);
+                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
         }
         return super.onOptionsItemSelected(item);
