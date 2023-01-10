@@ -22,10 +22,14 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
-        //TODO: postavi vrijednosti na pocetku iz sharedPreferences
+        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+
         username =findViewById(R.id.username);
+        username.setText(sharedPref.getString("username", ""));
         back = findViewById(R.id.back_button);
+
         training = findViewById(R.id.training);
+        if(sharedPref.getString("training", "") == "true") training.setChecked(true);
 
         back.setOnClickListener(new View.OnClickListener() {
             @Override
