@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -29,7 +30,8 @@ public class SettingsActivity extends AppCompatActivity {
         back = findViewById(R.id.back_button);
 
         training = findViewById(R.id.training);
-        if(sharedPref.getString("training", "") == "true") training.setChecked(true);
+        if(sharedPref.getString("training", "").equals("true")) training.setChecked(true);
+        else training.setChecked(false);
 
         back.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -45,7 +47,7 @@ public class SettingsActivity extends AppCompatActivity {
                 }
                 editor.apply();
                 //Log.i("USERNAME: ", sharedPref.getString("username", ""));
-                //Log.i("TRAINING: ", sharedPref.getString("training", ""));
+               // Log.i("TRAINING: ", sharedPref.getString("training", ""));
 
                 Intent intent = new Intent(SettingsActivity.this, MainActivity.class);
                 startActivity(intent);
