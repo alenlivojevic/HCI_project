@@ -58,8 +58,8 @@ public class TestActivity extends AppCompatActivity {
     private static final int BOXES_PER_MODE = 9;
     private TextView boxCounterLabel, modeLabel, difficultyLabel;
     private int boxCounter = 0;
-    private LogEntry.ContextMode contextMode = LogEntry.ContextMode.IN_HANDS;
-    private LogEntry.DifficultyMode difficultyMode = LogEntry.DifficultyMode.EASY;
+    private LogEntry.ContextMode contextMode;
+    private LogEntry.DifficultyMode difficultyMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,9 +80,6 @@ public class TestActivity extends AppCompatActivity {
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
         frameLayout = findViewById(R.id.frame_layout);
-
-        SharedPreferences sp = getSharedPreferences("user_data", Context.MODE_PRIVATE);
-        sp.edit().putString("mode", "IN_HANDS").putString("difficulty", "HARD").apply();
 
         frameLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -182,9 +179,9 @@ public class TestActivity extends AppCompatActivity {
     }
 
     private void startNewTestingCycle() {
-        SharedPreferences sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE);
-        String contextModeString = sharedPreferences.getString("mode", "");
-        String difficultyModeString = sharedPreferences.getString("difficulty", "");
+        SharedPreferences sharedPreferences = getApplication().getSharedPreferences("user_data", 0);
+        String contextModeString = sharedPreferences.getString("modality", "IN_HANDS");
+        String difficultyModeString = sharedPreferences.getString("difficulty", "EASY");
 
         switch (contextModeString) {
             case "IN_HANDS":

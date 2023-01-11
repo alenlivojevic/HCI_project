@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -16,15 +17,15 @@ import android.widget.Spinner;
 import com.example.hci.R;
 
 public class SettingsActivity extends AppCompatActivity {
-    Button back;
-    EditText username;
-    CheckBox training;
+    private Button back;
+    private EditText username;
+    private CheckBox training;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
-        SharedPreferences sharedPref = getSharedPreferences("user_data", Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = getApplicationContext().getSharedPreferences("user_data", 0);
 
         username = findViewById(R.id.username);
         username.setText(sharedPref.getString("username", ""));
@@ -50,8 +51,6 @@ public class SettingsActivity extends AppCompatActivity {
         back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = sharedPref.edit();
                 editor.putString("username", username.getText().toString());
                 if(training.isChecked()){
@@ -68,8 +67,8 @@ public class SettingsActivity extends AppCompatActivity {
                 Log.i("DIFFICULTY: ", sharedPref.getString("difficulty", ""));
                 Log.i("MODALITY: ", sharedPref.getString("modality", ""));
                 */
-                Intent intent = new Intent(SettingsActivity.this, MainActivity.class);
-                startActivity(intent);
+
+                finish();
             }
         });
 
