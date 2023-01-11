@@ -45,6 +45,9 @@ public class SettingsActivity extends AppCompatActivity {
         adapter2.setDropDownViewResource(android.R.layout.simple_spinner_item);
         difficulty.setAdapter(adapter2);
 
+        difficulty.setSelection(adapter2.getPosition(sharedPref.getString("difficulty", "")));
+        modality.setSelection(adapter.getPosition(sharedPref.getString("modality", "")));
+
         back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
