@@ -1,5 +1,15 @@
 <resources>
     <string name="app_name">HCI</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string-array name="modality">
+        <item>IN_HANDS</item>
+        <item>ON_SURFACE</item>
+        <item>WALKING</item>
+    </string-array>
+
+    <string-array name="difficulty">
+        <item>EASY</item>
+        <item>MEDIUM</item>
+        <item>HARD</item>
+    </string-array>
+
 </resources>
