@@ -28,6 +28,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.example.hci.R;
+import com.example.hci.utils.Database;
 import com.example.hci.utils.LogEntry;
 
 import java.util.Random;
@@ -39,7 +40,7 @@ public class TestActivity extends AppCompatActivity {
     private ImageView ballImage;
     private SensorEventListener gyroListener;
     private ImageView boxImage;
-    private int zeroX, zeroY;
+    private int ballZeroX, ballZeroY;
     private int ballSize, boxSize;
     private int layoutWidth, layoutHeight;
     private Vibrator vibrator;
@@ -55,11 +56,17 @@ public class TestActivity extends AppCompatActivity {
 
     private Random randomNumberGenerator = new Random();
 
-    private static final int BOXES_PER_MODE = 9;
+    private static final int BOXES_PER_MODE = 30;
     private TextView boxCounterLabel, modeLabel, difficultyLabel;
     private int boxCounter = 0;
     private LogEntry.ContextMode contextMode;
     private LogEntry.DifficultyMode difficultyMode;
+
+    private int maxBoxesX, maxBoxesY;
+    private int boxLeftoverX, boxLeftoverY;
+    private int boxIndexX = 0, boxIndexY = 0;
+
+    private float taskTime = 0.f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,8 +95,8 @@ public class TestActivity extends AppCompatActivity {
                 layoutHeight = frameLayout.getHeight();
 
                 ballSize = layoutWidth / 6;
-                zeroX = (int) (layoutWidth / 2.f);
-                zeroY = (int) (layoutHeight / 2.f);
+                ballZeroX = (int) (layoutWidth / 2.f);
+                ballZeroY = (int) (layoutHeight / 2.f);
 
                 ballImage = new ImageView(TestActivity.this);
                 ballImage.setImageResource(R.drawable.ball);
@@ -126,6 +133,10 @@ public class TestActivity extends AppCompatActivity {
 
     private void onNewMeasurement(float x, float y) {
         float currentTime = System.nanoTime();
+        float deltaTime = (currentTime - lastTime) / 1e9f;
+        taskTime += deltaTime;
+        lastTime = currentTime;
+
         lastMeasurements[measurementCount][0] = x;
         lastMeasurements[measurementCount][1] = y;
         ++measurementCount;
@@ -133,6 +144,7 @@ public class TestActivity extends AppCompatActivity {
         if (measurementCount == NR_OF_MEASUREMENTS) {
             measurementCount = 0;
         }
+
         float[] averageMeasurements = new float[2];
         averageMeasurements[0] = 0.f;
         averageMeasurements[1] = 0.f;
@@ -149,13 +161,16 @@ public class TestActivity extends AppCompatActivity {
         ballPositionY = (int) averageMeasurements[1];
 
         setBallPosition(ballPositionX, ballPositionY);
-        if (ballPositionX - ballSize / 2 > boxPositionX - boxSize / 2 &&
-                ballPositionX + ballSize / 2 < boxPositionX + boxSize / 2 &&
-                ballPositionY + ballSize / 2 < boxPositionY + boxSize / 2 &&
-                ballPositionY - ballSize / 2 > boxPositionY - boxSize / 2) {
+
+        // Transforming ball coordinate system to global (box) coordinate system
+        ballPositionX += layoutWidth / 2 - ballSize / 2;
+        ballPositionY += layoutHeight / 2 - ballSize / 2;
+        if (ballPositionX > boxPositionX &&
+                ballPositionX + ballSize < boxPositionX + boxSize &&
+                ballPositionY > boxPositionY &&
+                ballPositionY + ballSize < boxPositionY + boxSize) {
             // Change box color
-            float deltaTime = currentTime - lastTime;
-            timeInBox += deltaTime / 1e9;
+            timeInBox += deltaTime;
             int colorIntensity = calculateColorIntensity();
             boxImage.setBackgroundColor(Color.rgb(255 - colorIntensity, 255, 255 - colorIntensity));
 
@@ -167,6 +182,7 @@ public class TestActivity extends AppCompatActivity {
                 spawnRandomBox();
                 boxCounterLabel.setText(boxCounter + "/" + BOXES_PER_MODE);
                 if (boxCounter == BOXES_PER_MODE) {
+                    logResults();
                     finish();
                 }
             }
@@ -174,8 +190,14 @@ public class TestActivity extends AppCompatActivity {
             timeInBox = 0.f;
             boxImage.setBackgroundColor(Color.TRANSPARENT);
         }
+    }
 
-        lastTime = currentTime;
+    private void logResults() {
+        Database database = Database.getInstance(this);
+        SharedPreferences sp = getApplicationContext().getSharedPreferences("user_data", 0);
+        String username = sp.getString("username", "");
+        LogEntry logEntry = new LogEntry(username, contextMode, difficultyMode, taskTime);
+        database.writeNewLog(logEntry);
     }
 
     private void startNewTestingCycle() {
@@ -220,12 +242,29 @@ public class TestActivity extends AppCompatActivity {
         difficultyLabel.setText(difficultyMode.toString());
         boxCounterLabel.setText(boxCounter + "/" + BOXES_PER_MODE);
 
+        maxBoxesX = layoutWidth / boxSize;
+        maxBoxesY = layoutHeight / boxSize;
+        boxLeftoverX = layoutWidth % boxSize;
+        boxLeftoverY = layoutHeight % boxSize;
+
         spawnRandomBox();
     }
 
     private void spawnRandomBox() {
-        boxPositionX = randomNumberGenerator.nextInt(layoutWidth - boxSize) - layoutWidth / 2 + boxSize / 2;
-        boxPositionY = randomNumberGenerator.nextInt(layoutHeight - boxSize) - layoutHeight / 2 + boxSize / 2;
+        int randomIndexX, randomIndexY;
+
+        do {
+            randomIndexX = randomNumberGenerator.nextInt(maxBoxesX);
+        } while (randomIndexX == boxIndexX);
+
+        do {
+            randomIndexY = randomNumberGenerator.nextInt(maxBoxesY);
+        } while (randomIndexY == boxIndexY);
+
+        boxIndexX = randomIndexX;
+        boxIndexY = randomIndexY;
+        boxPositionX = boxIndexX * boxSize + boxLeftoverX / 2;
+        boxPositionY = boxIndexY * boxSize + boxLeftoverY / 2;
         setBoxPosition(boxPositionX, boxPositionY);
     }
 
@@ -234,16 +273,18 @@ public class TestActivity extends AppCompatActivity {
     }
 
     private void setBallPosition(int x, int y) {
+        // Ball coordinate system with center in the middle of the screen
         FrameLayout.LayoutParams ballLayoutParams = (FrameLayout.LayoutParams) ballImage.getLayoutParams();
-        ballLayoutParams.leftMargin = zeroX - ballSize / 2 + x;
-        ballLayoutParams.topMargin = zeroY - ballSize / 2 - y;
+        ballLayoutParams.leftMargin = ballZeroX - ballSize / 2 + x;
+        ballLayoutParams.topMargin = ballZeroY - ballSize / 2 + y;
         ballImage.setLayoutParams(ballLayoutParams);
     }
 
     private void setBoxPosition(int x, int y) {
+        // Box coordinate system with 0, 0 in top left corner
         FrameLayout.LayoutParams boxLayoutParams = (FrameLayout.LayoutParams) boxImage.getLayoutParams();
-        boxLayoutParams.leftMargin = zeroX - boxSize / 2 + x;
-        boxLayoutParams.topMargin = zeroY - boxSize / 2 - y;
+        boxLayoutParams.leftMargin = x;
+        boxLayoutParams.topMargin = y;
         boxImage.setLayoutParams(boxLayoutParams);
     }
 
@@ -254,7 +295,7 @@ public class TestActivity extends AppCompatActivity {
         float yRelative = Math.max(-maxSensorRange, Math.min(measurements[1], maxSensorRange)) / maxSensorRange;
 
         measurements[0] = -xRelative * maxRangeX; // - is necessary because of inverted x axis on gyroscope
-        measurements[1] = -yRelative * maxRangeY;
+        measurements[1] = yRelative * maxRangeY;
     }
 
     public void onResume() {
