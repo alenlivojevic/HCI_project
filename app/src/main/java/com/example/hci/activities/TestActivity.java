@@ -68,6 +68,8 @@ public class TestActivity extends AppCompatActivity {
 
     private float taskTime = 0.f;
 
+    boolean ready = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,6 +116,7 @@ public class TestActivity extends AppCompatActivity {
                 ballImage.bringToFront();
 
                 frameLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                ready = true;
             }
         });
 
@@ -121,7 +124,8 @@ public class TestActivity extends AppCompatActivity {
 
             @Override
             public void onSensorChanged(SensorEvent event) {
-               onNewMeasurement(event.values[0], event.values[1]);
+                if(ready) onNewMeasurement(event.values[0], event.values[1]);
+
             }
 
             @Override
@@ -182,7 +186,8 @@ public class TestActivity extends AppCompatActivity {
                 spawnRandomBox();
                 boxCounterLabel.setText(boxCounter + "/" + BOXES_PER_MODE);
                 if (boxCounter == BOXES_PER_MODE) {
-                    logResults();
+                    SharedPreferences sharedPref = getApplicationContext().getSharedPreferences("user_data", 0);
+                    if(sharedPref.getString("training", "").equals("false")) logResults();
                     finish();
                 }
             }

@@ -11,6 +11,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -19,6 +20,8 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.hci.R;
+
+import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
     TextView textX, textY, textZ, poruka, poruka2;
@@ -75,6 +78,13 @@ public class MainActivity extends AppCompatActivity {
             case R.id.settings:
                 Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
+                break;
+            case R.id.delete_log:
+                File logFile = new File(this.getExternalFilesDir(null), "logs.txt");
+                boolean successful = logFile.delete();
+                //if(successful) Log.i("INFO", "uspjesno pobrisano");
+                //else Log.i("INFO","neuspjesno pobrisano");
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
