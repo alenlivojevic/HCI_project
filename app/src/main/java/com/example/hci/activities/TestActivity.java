@@ -4,34 +4,23 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.preference.PreferenceManager;
-import android.text.style.AbsoluteSizeSpan;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.widget.AbsoluteLayout;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.example.hci.R;
 import com.example.hci.utils.Database;
 import com.example.hci.utils.LogEntry;
-
-import java.util.Random;
 
 public class TestActivity extends AppCompatActivity {
     private SensorManager sensorManager;
@@ -42,6 +31,7 @@ public class TestActivity extends AppCompatActivity {
     private ImageView boxImage;
     private int ballZeroX, ballZeroY;
     private int ballSize, boxSize;
+    private int betweenBoxesSpaceX, betweenBoxesSpaceY;
     private int layoutWidth, layoutHeight;
     private Vibrator vibrator;
     private int boxPositionX = 0, boxPositionY = 0;
@@ -54,16 +44,19 @@ public class TestActivity extends AppCompatActivity {
     private static final int NR_OF_MEASUREMENTS = 5;
     private int measurementCount = 0;
 
-    private Random randomNumberGenerator = new Random();
-
-    private static final int BOXES_PER_MODE = 30;
-    private TextView boxCounterLabel, modeLabel, difficultyLabel;
-    private int boxCounter = 0;
+    private TextView boxCounterLabel, modeLabel, difficultyLabel, cycleLabel;
+    private static final int BOXES_PER_CYCLE = 15, NR_OF_CYCLES = 3;
+    private Button startNewCycleButton;
+    private int boxCounter = 0, cycleCounter = 0;
     private LogEntry.ContextMode contextMode;
     private LogEntry.DifficultyMode difficultyMode;
 
-    private int maxBoxesX, maxBoxesY;
-    private int boxLeftoverX, boxLeftoverY;
+    private int[] cycleSequence;
+    private int currentCycleIndex;
+
+    private int[][] cycleBoxSequences;
+    private float[] cycleTimes;
+
     private int boxIndexX = 0, boxIndexY = 0;
 
     private float taskTime = 0.f;
@@ -78,8 +71,16 @@ public class TestActivity extends AppCompatActivity {
         boxCounterLabel = findViewById(R.id.box_counter);
         modeLabel = findViewById(R.id.mode);
         difficultyLabel = findViewById(R.id.difficulty);
+        cycleLabel = findViewById(R.id.cycle);
+        startNewCycleButton = findViewById(R.id.startNewCycle);
 
-        lastTime = System.nanoTime();
+        cycleBoxSequences = new int[][] {
+            {8, 1, 3, 8, 6, 2, 7, 0, 7, 2, 0, 7, 6, 7, 1},
+            {2, 4, 7, 6, 3, 6, 5, 8, 0, 2, 1, 8, 1, 8, 2},
+            {0, 8, 2, 8, 3, 2, 3, 8, 0, 5, 6, 7, 3, 1, 6}
+        };
+
+        cycleTimes = new float[3];
 
         lastMeasurements = new float[NR_OF_MEASUREMENTS][2];
 
@@ -111,12 +112,55 @@ public class TestActivity extends AppCompatActivity {
                 boxImage.setImageResource(R.drawable.box);
                 frameLayout.addView(boxImage);
 
-                startNewTestingCycle();
-
                 ballImage.bringToFront();
 
+                SharedPreferences sharedPreferences = getApplication().getSharedPreferences("user_data", 0);
+                String contextModeString = sharedPreferences.getString("modality", "SITTING");
+                String difficultyModeString = sharedPreferences.getString("difficulty", "EASY");
+
+                switch (contextModeString) {
+                    case "WALKING":
+                        contextMode = LogEntry.ContextMode.WALKING;
+                        cycleSequence = new int[] {1, 2, 0};
+                        break;
+                    case "SITTING":
+                        contextMode = LogEntry.ContextMode.SITTING;
+                        cycleSequence = new int[] {2, 0, 1};
+                        break;
+                }
+
+                switch (difficultyModeString) {
+                    case "EASY":
+                        boxSize = (int) (ballSize * 2.f);
+                        difficultyMode = LogEntry.DifficultyMode.EASY;
+                        break;
+                    case "HARD":
+                        boxSize = (int) (ballSize * 1.5f);
+                        difficultyMode = LogEntry.DifficultyMode.HARD;
+                        break;
+                }
+
+                betweenBoxesSpaceX = (layoutWidth - 3 * boxSize) / 4;
+                betweenBoxesSpaceY = (layoutHeight - 3 * boxSize) / 4;
+
+                FrameLayout.LayoutParams boxLayoutParams = (FrameLayout.LayoutParams) boxImage.getLayoutParams();
+                boxLayoutParams.width = boxSize;
+                boxLayoutParams.height = boxSize;
+                boxImage.setLayoutParams(boxLayoutParams);
+
+
                 frameLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                ready = true;
+                frameLayout.setVisibility(View.GONE);
+            }
+        });
+
+        startNewCycleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startNewCycleButton.setVisibility(View.GONE);
+                frameLayout.setVisibility(View.VISIBLE);
+                sensorManager.registerListener(gyroListener, sensor, SensorManager.SENSOR_DELAY_GAME);
+                startNewTestingCycle();
             }
         });
 
@@ -124,8 +168,8 @@ public class TestActivity extends AppCompatActivity {
 
             @Override
             public void onSensorChanged(SensorEvent event) {
-                if(ready) onNewMeasurement(event.values[0], event.values[1]);
-
+                if(ready)
+                    onNewMeasurement(event.values[0], event.values[1]);
             }
 
             @Override
@@ -183,12 +227,20 @@ public class TestActivity extends AppCompatActivity {
                 timeInBox = 0.f;
                 ++boxCounter;
                 boxImage.setBackgroundColor(Color.TRANSPARENT);
-                spawnRandomBox();
-                boxCounterLabel.setText(boxCounter + "/" + BOXES_PER_MODE);
-                if (boxCounter == BOXES_PER_MODE) {
-                    SharedPreferences sharedPref = getApplicationContext().getSharedPreferences("user_data", 0);
-                    if(sharedPref.getString("training", "").equals("false")) logResults();
-                    finish();
+                boxCounterLabel.setText(boxCounter + "/" +  BOXES_PER_CYCLE);
+                if (boxCounter == BOXES_PER_CYCLE) {
+                    cycleTimes[cycleCounter] = taskTime;
+                    ++cycleCounter;
+                    frameLayout.setVisibility(View.GONE);
+                    startNewCycleButton.setVisibility(View.VISIBLE);
+                    ready = false;
+                    if (cycleCounter == NR_OF_CYCLES) {
+                        SharedPreferences sharedPref = getApplicationContext().getSharedPreferences("user_data", 0);
+                        if(sharedPref.getString("training", "").equals("false")) logResults();
+                        finish();
+                    }
+                } else {
+                    spawnNextBox();
                 }
             }
         } else if (timeInBox > 0.f) {
@@ -201,75 +253,35 @@ public class TestActivity extends AppCompatActivity {
         Database database = Database.getInstance(this);
         SharedPreferences sp = getApplicationContext().getSharedPreferences("user_data", 0);
         String username = sp.getString("username", "");
+        taskTime = (cycleTimes[0] + cycleTimes[1] + cycleTimes[2]) / 3f;
         LogEntry logEntry = new LogEntry(username, contextMode, difficultyMode, taskTime);
         database.writeNewLog(logEntry);
     }
 
     private void startNewTestingCycle() {
-        SharedPreferences sharedPreferences = getApplication().getSharedPreferences("user_data", 0);
-        String contextModeString = sharedPreferences.getString("modality", "IN_HANDS");
-        String difficultyModeString = sharedPreferences.getString("difficulty", "EASY");
-
-        switch (contextModeString) {
-            case "IN_HANDS":
-                contextMode = LogEntry.ContextMode.IN_HANDS;
-                break;
-            case "WALKING":
-                contextMode = LogEntry.ContextMode.WALKING;
-                break;
-            case "ON_SURFACE":
-                contextMode = LogEntry.ContextMode.ON_SURFACE;
-                break;
-        }
-
-        switch (difficultyModeString) {
-            case "EASY":
-                boxSize = (int) (ballSize * 2.5f);
-                difficultyMode = LogEntry.DifficultyMode.EASY;
-                break;
-            case "MEDIUM":
-                boxSize = (int) (ballSize * 2.f);
-                difficultyMode = LogEntry.DifficultyMode.MEDIUM;
-                break;
-            case "HARD":
-                boxSize = (int) (ballSize * 1.5f);
-                difficultyMode = LogEntry.DifficultyMode.HARD;
-                break;
-        }
-
-        FrameLayout.LayoutParams boxLayoutParams = (FrameLayout.LayoutParams) boxImage.getLayoutParams();
-        boxLayoutParams.width = boxSize;
-        boxLayoutParams.height = boxSize;
-        boxImage.setLayoutParams(boxLayoutParams);
-
         boxCounter = 0;
         modeLabel.setText(contextMode.toString());
         difficultyLabel.setText(difficultyMode.toString());
-        boxCounterLabel.setText(boxCounter + "/" + BOXES_PER_MODE);
+        boxCounterLabel.setText(boxCounter + "/" + BOXES_PER_CYCLE);
+        cycleLabel.setText((cycleCounter + 1) + "/" + NR_OF_CYCLES);
+        currentCycleIndex = cycleSequence[cycleCounter];
 
-        maxBoxesX = layoutWidth / boxSize;
-        maxBoxesY = layoutHeight / boxSize;
-        boxLeftoverX = layoutWidth % boxSize;
-        boxLeftoverY = layoutHeight % boxSize;
-
-        spawnRandomBox();
+        taskTime = 0.f;
+        lastTime = System.nanoTime();
+        ready = true;
+        for (int i = 0; i < lastMeasurements.length; ++i) {
+            lastMeasurements[i][0] = 0.f;
+            lastMeasurements[i][1] = 0.f;
+        }
+        measurementCount = 0;
+        setBallPosition(0, 0);
+        spawnNextBox();
     }
 
-    private void spawnRandomBox() {
-        int randomIndexX, randomIndexY;
-
-        do {
-            randomIndexX = randomNumberGenerator.nextInt(maxBoxesX);
-        } while (randomIndexX == boxIndexX);
-
-        do {
-            randomIndexY = randomNumberGenerator.nextInt(maxBoxesY);
-        } while (randomIndexY == boxIndexY);
-
-        boxIndexX = randomIndexX;
-        boxIndexY = randomIndexY;
-        boxPositionX = boxIndexX * boxSize + boxLeftoverX / 2;
-        boxPositionY = boxIndexY * boxSize + boxLeftoverY / 2;
+    private void spawnNextBox() {
+        int newBoxIndex = cycleBoxSequences[currentCycleIndex][boxCounter];
+        boxPositionX = ((newBoxIndex % 3) * boxSize) + (((newBoxIndex % 3) + 1) * betweenBoxesSpaceX);
+        boxPositionY = ((newBoxIndex / 3) * boxSize) + (((newBoxIndex / 3) + 1) * betweenBoxesSpaceY);
         setBoxPosition(boxPositionX, boxPositionY);
     }
 
@@ -305,7 +317,6 @@ public class TestActivity extends AppCompatActivity {
 
     public void onResume() {
         super.onResume();
-        sensorManager.registerListener(gyroListener, sensor, SensorManager.SENSOR_DELAY_GAME);
     }
 
     public void onStop() {
