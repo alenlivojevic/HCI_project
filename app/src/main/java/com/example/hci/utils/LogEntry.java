@@ -7,14 +7,12 @@ import java.util.Locale;
 public class LogEntry {
 
     public enum ContextMode {
-        IN_HANDS,
-        ON_SURFACE,
+        SITTING,
         WALKING;
     }
 
     public enum DifficultyMode {
         EASY,
-        MEDIUM,
         HARD;
     }
 

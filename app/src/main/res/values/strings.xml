@@ -1,14 +1,13 @@
 <resources>
     <string name="app_name">HCI</string>
+    <string name="start_new_cycle">Start new cycle</string>
     <string-array name="modality">
-        <item>IN_HANDS</item>
-        <item>ON_SURFACE</item>
+        <item>SITTING</item>
         <item>WALKING</item>
     </string-array>
 
     <string-array name="difficulty">
         <item>EASY</item>
-        <item>MEDIUM</item>
         <item>HARD</item>
     </string-array>
 
